@@ -1,0 +1,6 @@
+{
+  "appId":"com.sparedice.app",
+  "appName":"SpareDice",
+  "webDir":"www",
+  "server":{"androidScheme":"https"}
+}
