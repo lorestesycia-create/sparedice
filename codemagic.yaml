@@ -8,34 +8,34 @@ workflows:
       android_signing:
         - sparedice
     scripts:
-      - npm install
-      - npx cap add android
-      - npx cap sync android
-      - |
-        python3 - <<'PY'
-        from pathlib import Path
+      - name: Install dependencies
+        script: npm install
 
-        p = Path("android/app/build.gradle")
-        s = p.read_text()
+      - name: Generate Android
+        script: npx cap add android
 
-        marker = "    buildTypes {"
-        signing = """    signingConfigs {
-        release {
-            storeFile file(System.getenv("CM_KEYSTORE_PATH"))
-            storePassword System.getenv("CM_KEYSTORE_PASSWORD")
-            keyAlias System.getenv("CM_KEY_ALIAS")
-            keyPassword System.getenv("CM_KEY_PASSWORD")
-        }
-    }
-"""
-        s = s.replace(marker, signing + marker, 1)
+      - name: Sync Android
+        script: npx cap sync android
 
-        release = """        release {
-"""
-        s = s.replace(release, release + "            signingConfig signingConfigs.release\n", 1)
+      - name: Configure signing
+        script: |
+          sed -i '/buildTypes {/i\
+              signingConfigs {\
+                  release {\
+                      storeFile file(System.getenv("CM_KEYSTORE_PATH"))\
+                      storePassword System.getenv("CM_KEYSTORE_PASSWORD")\
+                      keyAlias System.getenv("CM_KEY_ALIAS")\
+                      keyPassword System.getenv("CM_KEY_PASSWORD")\
+                  }\
+              }' android/app/build.gradle
+          sed -i '/release {/a\
+                      signingConfig signingConfigs.release' android/app/build.gradle
 
-        p.write_text(s)
-        PY
-      - cd android && chmod +x gradlew && ./gradlew bundleRelease
+      - name: Build AAB
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease
+
     artifacts:
       - android/app/build/outputs/**/*.aab
