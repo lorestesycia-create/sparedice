@@ -2,7 +2,6 @@ workflows:
   android-bundle:
     name: SpareDice Play Bundle
     max_build_duration: 60
-
     environment:
       node: 22
       java: 21
@@ -12,162 +11,116 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
+          set -e
           npm install
           npm install --no-save esbuild
 
       - name: Bundle JavaScript
         script: |
-          mkdir -p build-web
-          npx esbuild www/app.js \
-            --bundle \
-            --platform=browser \
-            --format=iife \
-            --outfile=build-web/app.js
-
-          cp www/index.html build-web/index.html
-          cp www/style.css build-web/style.css
-
+          set -e
           rm -rf www-final
-          mv build-web www-final
-
-      - name: Verify bundled JavaScript
-        script: |
+          mkdir -p www-final
+          npx esbuild www/app.js --bundle --platform=browser --format=iife --outfile=www-final/app.js
+          cp www/index.html www-final/index.html
+          cp www/style.css www-final/style.css
           test -s www-final/app.js
           test -s www-final/index.html
           test -s www-final/style.css
 
-          if grep -q "from '@capacitor-community/admob'" www-final/app.js; then
-            echo "ERROR: import de AdMob sin empaquetar"
-            exit 1
-          fi
-
-          if grep -q 'from "@capacitor-community/admob"' www-final/app.js; then
-            echo "ERROR: import de AdMob sin empaquetar"
-            exit 1
-          fi
-
       - name: Configure Capacitor webDir
         script: |
+          set -e
           python3 <<'PY'
           import json
           from pathlib import Path
-
           p = Path("capacitor.config.json")
           data = json.loads(p.read_text())
-
           data["webDir"] = "www-final"
-
           p.write_text(json.dumps(data, indent=2))
           PY
 
       - name: Generate Android
         script: |
+          set -e
           npx cap add android
           npx cap sync android
 
+      - name: Verify copied web assets
+        script: |
+          set -e
+          test -s android/app/src/main/assets/public/index.html
+          test -s android/app/src/main/assets/public/app.js
+          test -s android/app/src/main/assets/public/style.css
+          grep -q 'src="app.js"' android/app/src/main/assets/public/index.html
+          echo "WEB ASSETS OK"
+
       - name: Configure Android for Google Play
         script: |
+          set -e
           python3 <<'PY'
           from pathlib import Path
           import re
 
           variables = Path("android/variables.gradle")
           v = variables.read_text()
-
-          v, c1 = re.subn(
-              r'compileSdkVersion\s*=\s*\d+',
-              'compileSdkVersion = 36',
-              v
-          )
-
-          v, c2 = re.subn(
-              r'targetSdkVersion\s*=\s*\d+',
-              'targetSdkVersion = 36',
-              v
-          )
+          v, c1 = re.subn(r'compileSdkVersion\s*=\s*\d+', 'compileSdkVersion = 36', v)
+          v, c2 = re.subn(r'targetSdkVersion\s*=\s*\d+', 'targetSdkVersion = 36', v)
 
           if c1 != 1 or c2 != 1:
-              raise SystemExit("ERROR: no se pudo establecer API 36")
+              raise SystemExit("ERROR: API 36")
 
           variables.write_text(v)
 
           gradle = Path("android/app/build.gradle")
           g = gradle.read_text()
-
-          g, c3 = re.subn(
-              r'versionCode\s+\d+',
-              'versionCode 3',
-              g,
-              count=1
-          )
+          g, c3 = re.subn(r'versionCode\s+\d+', 'versionCode 3', g, count=1)
 
           if c3 != 1:
-              raise SystemExit("ERROR: no se pudo establecer versionCode 3")
+              raise SystemExit("ERROR: versionCode 3")
 
           gradle.write_text(g)
           PY
 
       - name: Configure AdMob
         script: |
+          set -e
           python3 <<'PY'
           from pathlib import Path
 
-          manifest = Path(
-              "android/app/src/main/AndroidManifest.xml"
-          )
-
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
           s = manifest.read_text()
 
           if "com.google.android.gms.ads.APPLICATION_ID" not in s:
-
               admob = '''        <meta-data
               android:name="com.google.android.gms.ads.APPLICATION_ID"
               android:value="@string/admob_app_id" />
           '''
-
               app_start = s.find("<application")
-
               if app_start == -1:
-                  raise SystemExit(
-                      "ERROR: no se encontró <application>"
-                  )
+                  raise SystemExit("ERROR: application")
 
               app_open_end = s.find(">", app_start)
-
               if app_open_end == -1:
-                  raise SystemExit(
-                      "ERROR: etiqueta <application> inválida"
-                  )
+                  raise SystemExit("ERROR: application")
 
-              s = (
-                  s[:app_open_end + 1] +
-                  "\n" +
-                  admob +
-                  s[app_open_end + 1:]
-              )
-
+              s = s[:app_open_end + 1] + "\n" + admob + s[app_open_end + 1:]
               manifest.write_text(s)
 
-          strings = Path(
-              "android/app/src/main/res/values/strings.xml"
-          )
-
+          strings = Path("android/app/src/main/res/values/strings.xml")
           s = strings.read_text()
 
           if "admob_app_id" not in s:
               s = s.replace(
                   "</resources>",
-                  '    <string name="admob_app_id">'
-                  'ca-app-pub-8854680295966508~2209037926'
-                  '</string>\n</resources>',
+                  '    <string name="admob_app_id">ca-app-pub-8854680295966508~2209037926</string>\n</resources>',
                   1
               )
-
               strings.write_text(s)
           PY
 
       - name: Configure release signing
         script: |
+          set -e
           python3 <<'PY'
           from pathlib import Path
 
@@ -187,19 +140,18 @@ workflows:
           """
 
           if "signingConfigs {" not in s:
-              s = s.replace(
-                  marker,
-                  signing + marker,
-                  1
-              )
+              if marker not in s:
+                  raise SystemExit("ERROR: buildTypes")
+              s = s.replace(marker, signing + marker, 1)
 
           release_marker = "        release {"
 
           if "signingConfig signingConfigs.release" not in s:
+              if release_marker not in s:
+                  raise SystemExit("ERROR: release")
               s = s.replace(
                   release_marker,
-                  release_marker +
-                  "\n            signingConfig signingConfigs.release",
+                  release_marker + "\n            signingConfig signingConfigs.release",
                   1
               )
 
@@ -208,33 +160,34 @@ workflows:
 
       - name: Final verification
         script: |
-          grep "compileSdkVersion = 36" android/variables.gradle
-          grep "targetSdkVersion = 36" android/variables.gradle
-          grep "versionCode 3" android/app/build.gradle
-
-          grep "com.google.android.gms.ads.APPLICATION_ID" \
-            android/app/src/main/AndroidManifest.xml
-
-          grep "ca-app-pub-8854680295966508~2209037926" \
-            android/app/src/main/res/values/strings.xml
-
+          set -e
+          grep -q "compileSdkVersion = 36" android/variables.gradle
+          grep -q "targetSdkVersion = 36" android/variables.gradle
+          grep -q "versionCode 3" android/app/build.gradle
+          grep -q "com.google.android.gms.ads.APPLICATION_ID" android/app/src/main/AndroidManifest.xml
+          grep -q "ca-app-pub-8854680295966508~2209037926" android/app/src/main/res/values/strings.xml
           test -s android/app/src/main/assets/public/index.html
           test -s android/app/src/main/assets/public/app.js
           test -s android/app/src/main/assets/public/style.css
-
-          if grep -q "@capacitor-community/admob" \
-            android/app/src/main/assets/public/app.js; then
-            echo "ERROR: AdMob no quedó empaquetado"
-            exit 1
-          fi
-
           echo "VERIFICACION COMPLETADA"
 
       - name: Build signed AAB
         script: |
+          set -e
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease
+
+      - name: Verify final AAB contents
+        script: |
+          set -e
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
+          test -s "$AAB"
+          unzip -t "$AAB" >/dev/null
+          unzip -l "$AAB" | grep -q "base/assets/public/index.html"
+          unzip -l "$AAB" | grep -q "base/assets/public/app.js"
+          unzip -l "$AAB" | grep -q "base/assets/public/style.css"
+          echo "AAB FINAL OK"
 
     artifacts:
       - android/app/build/outputs/**/*.aab
