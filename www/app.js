@@ -1,10 +1,3 @@
-import {
-  AdMob,
-  AdmobConsentStatus,
-  BannerAdSize,
-  BannerAdPosition
-} from '@capacitor-community/admob';
-
 const P = {
   1: [4],
   2: [0, 8],
@@ -21,13 +14,13 @@ let vals = [1, 1];
 const dice = document.querySelector('#dice');
 
 function draw() {
-  dice.innerHTML = vals.map(v =>
-    `<div class="die ${rolling ? 'rolling' : ''}">${
-      [0,1,2,3,4,5,6,7,8]
-        .map(i => `<span class="${P[v].includes(i) ? 'pip' : 'empty'}"></span>`)
-        .join('')
-    }</div>`
-  ).join('');
+  dice.innerHTML = vals.map(v => {
+    const points = [0,1,2,3,4,5,6,7,8]
+      .map(i => `<span class="${P[v].includes(i) ? 'pip' : 'empty'}"></span>`)
+      .join('');
+
+    return `<div class="die ${rolling ? 'rolling' : ''}">${points}</div>`;
+  }).join('');
 }
 
 function roll() {
@@ -36,73 +29,45 @@ function roll() {
   rolling = true;
   let n = 0;
 
-  const id = setInterval(() => {
+  const timer = setInterval(() => {
     vals = Array.from(
       { length: count },
-      () => 1 + Math.floor(Math.random() * 6)
+      () => Math.floor(Math.random() * 6) + 1
     );
 
     draw();
+    n++;
 
-    if (++n === 7) {
-      clearInterval(id);
+    if (n >= 7) {
+      clearInterval(timer);
       rolling = false;
       draw();
     }
   }, 70);
 }
 
-document.querySelector('#table').onclick = roll;
+document.querySelector('#table').addEventListener('click', roll);
 
-for (const [id, n] of [['one', 1], ['two', 2]]) {
-  document.querySelector('#' + id).onclick = e => {
-    e.stopPropagation();
+document.querySelector('#one').addEventListener('click', e => {
+  e.stopPropagation();
+  count = 1;
+  vals = [1];
 
-    count = n;
-    vals = Array(n).fill(1);
+  document.querySelector('#one').classList.add('active');
+  document.querySelector('#two').classList.remove('active');
 
-    document.querySelector('#one')
-      .classList.toggle('active', n === 1);
+  draw();
+});
 
-    document.querySelector('#two')
-      .classList.toggle('active', n === 2);
+document.querySelector('#two').addEventListener('click', e => {
+  e.stopPropagation();
+  count = 2;
+  vals = [1, 1];
 
-    draw();
-  };
-}
+  document.querySelector('#two').classList.add('active');
+  document.querySelector('#one').classList.remove('active');
+
+  draw();
+});
 
 draw();
-
-async function iniciarAnuncios() {
-  try {
-    await AdMob.initialize();
-
-    let consentInfo = await AdMob.requestConsentInfo();
-
-    if (
-      consentInfo.isConsentFormAvailable &&
-      consentInfo.status === AdmobConsentStatus.REQUIRED
-    ) {
-      consentInfo = await AdMob.showConsentForm();
-    }
-
-    if (!consentInfo.canRequestAds) {
-      console.log('AdMob: todavía no se pueden solicitar anuncios.');
-      return;
-    }
-
-    await AdMob.showBanner({
-      adId: 'ca-app-pub-8854680295966508/9223012145',
-      adSize: BannerAdSize.ADAPTIVE_BANNER,
-      position: BannerAdPosition.BOTTOM_CENTER,
-      margin: 0
-    });
-
-  } catch (error) {
-    console.error('Error de AdMob:', error);
-  }
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-  iniciarAnuncios();
-});
