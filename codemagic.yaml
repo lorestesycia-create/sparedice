@@ -21,9 +21,11 @@ workflows:
           rm -rf www-final
           mkdir -p www-final
           npx esbuild www/app.js --bundle --platform=browser --format=iife --outfile=www-final/app.js
+          npx esbuild www/ads.js --bundle --platform=browser --format=iife --outfile=www-final/ads.js
           cp www/index.html www-final/index.html
           cp www/style.css www-final/style.css
           test -s www-final/app.js
+          test -s www-final/ads.js
           test -s www-final/index.html
           test -s www-final/style.css
 
@@ -51,8 +53,10 @@ workflows:
           set -e
           test -s android/app/src/main/assets/public/index.html
           test -s android/app/src/main/assets/public/app.js
+          test -s android/app/src/main/assets/public/ads.js
           test -s android/app/src/main/assets/public/style.css
           grep -q 'src="app.js"' android/app/src/main/assets/public/index.html
+          grep -q 'src="ads.js"' android/app/src/main/assets/public/index.html
           echo "WEB ASSETS OK"
 
       - name: Configure Android for Google Play
@@ -87,13 +91,13 @@ workflows:
 
           g, c3 = re.subn(
               r'versionCode\s+\d+',
-              'versionCode 4',
+              'versionCode 5',
               g,
               count=1
           )
 
           if c3 != 1:
-              raise SystemExit("ERROR: versionCode 4")
+              raise SystemExit("ERROR: versionCode 5")
 
           gradle.write_text(g)
           PY
@@ -202,13 +206,15 @@ workflows:
           set -e
           grep -q "compileSdkVersion = 36" android/variables.gradle
           grep -q "targetSdkVersion = 36" android/variables.gradle
-          grep -q "versionCode 4" android/app/build.gradle
+          grep -q "versionCode 5" android/app/build.gradle
           grep -q "com.google.android.gms.ads.APPLICATION_ID" android/app/src/main/AndroidManifest.xml
           grep -q "ca-app-pub-8854680295966508~2209037926" android/app/src/main/res/values/strings.xml
           test -s android/app/src/main/assets/public/index.html
           test -s android/app/src/main/assets/public/app.js
+          test -s android/app/src/main/assets/public/ads.js
           test -s android/app/src/main/assets/public/style.css
-          echo "VERIFICACION VERSION 4 COMPLETADA"
+          grep -q 'src="ads.js"' android/app/src/main/assets/public/index.html
+          echo "VERIFICACION VERSION 5 COMPLETADA"
 
       - name: Build signed AAB
         script: |
@@ -225,8 +231,9 @@ workflows:
           unzip -t "$AAB" >/dev/null
           unzip -l "$AAB" | grep -q "base/assets/public/index.html"
           unzip -l "$AAB" | grep -q "base/assets/public/app.js"
+          unzip -l "$AAB" | grep -q "base/assets/public/ads.js"
           unzip -l "$AAB" | grep -q "base/assets/public/style.css"
-          echo "AAB VERSION 4 FINAL OK"
+          echo "AAB VERSION 5 FINAL OK"
 
     artifacts:
       - android/app/build/outputs/**/*.aab
