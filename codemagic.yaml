@@ -13,7 +13,7 @@ workflows:
         script: |
           set -e
           npm install
-          npm install --no-save esbuild
+          npm install --no-save --registry=https://registry.npmjs.org/ esbuild
 
       - name: Bundle JavaScript
         script: |
