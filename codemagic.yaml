@@ -45,7 +45,7 @@ workflows:
       - name: Generate Android
         script: |
           set -e
-          npx cap add android
+          
           npx cap sync android
 
       - name: Verify copied web assets
