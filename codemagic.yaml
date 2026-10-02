@@ -3,7 +3,7 @@ workflows:
     name: SpareDice Play Bundle
     max_build_duration: 60
     environment:
-      node: 22
+      node: 20
       java: 21
       android_signing:
         - sparedice
