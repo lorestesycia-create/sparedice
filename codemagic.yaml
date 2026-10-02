@@ -91,13 +91,13 @@ workflows:
 
           g, c3 = re.subn(
               r'versionCode\s+\d+',
-              'versionCode 7',
+              'versionCode 8',
               g,
               count=1
           )
 
           if c3 != 1:
-              raise SystemExit("ERROR: versionCode 7")
+              raise SystemExit("ERROR: versionCode 8")
 
           gradle.write_text(g)
           PY
@@ -206,7 +206,7 @@ workflows:
           set -e
           grep -q "compileSdkVersion = 36" android/variables.gradle
           grep -q "targetSdkVersion = 36" android/variables.gradle
-          grep -q "versionCode 7" android/app/build.gradle
+          grep -q "versionCode 8" android/app/build.gradle
           grep -q "com.google.android.gms.ads.APPLICATION_ID" android/app/src/main/AndroidManifest.xml
           grep -q "ca-app-pub-8854680295966508~2209037926" android/app/src/main/res/values/strings.xml
           test -s android/app/src/main/assets/public/index.html
