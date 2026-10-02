@@ -214,7 +214,7 @@ workflows:
           test -s android/app/src/main/assets/public/ads.js
           test -s android/app/src/main/assets/public/style.css
           grep -q 'src="ads.js"' android/app/src/main/assets/public/index.html
-          echo "VERIFICACION VERSION 7 COMPLETADA"
+          echo "VERIFICACION VERSION 5 COMPLETADA"
 
       - name: Build signed AAB
         script: |
@@ -233,7 +233,7 @@ workflows:
           unzip -l "$AAB" | grep -q "base/assets/public/app.js"
           unzip -l "$AAB" | grep -q "base/assets/public/ads.js"
           unzip -l "$AAB" | grep -q "base/assets/public/style.css"
-          echo "AAB VERSION 7 FINAL OK"
+          echo "AAB VERSION 5 FINAL OK"
 
     artifacts:
       - android/app/build/outputs/**/*.aab
