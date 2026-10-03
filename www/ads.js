@@ -9,25 +9,25 @@ async function iniciarAnuncios() {
   try {
     await AdMob.initialize();
 
-    try {
-      let consentInfo = await AdMob.requestConsentInfo();
+    let consentInfo = await AdMob.requestConsentInfo();
 
-      if (
-        consentInfo.isConsentFormAvailable &&
-        consentInfo.status === AdmobConsentStatus.REQUIRED
-      ) {
-        await AdMob.showConsentForm();
-      }
-    } catch (error) {
-      console.error('Consentimiento AdMob:', error);
+    if (
+      consentInfo.isConsentFormAvailable &&
+      consentInfo.status === AdmobConsentStatus.REQUIRED
+    ) {
+      consentInfo = await AdMob.showConsentForm();
+    }
+
+    if (!consentInfo.canRequestAds) {
+      console.log('AdMob: no se pueden solicitar anuncios todavía.');
+      return;
     }
 
     await AdMob.showBanner({
       adId: 'ca-app-pub-8854680295966508/9223012145',
       adSize: BannerAdSize.ADAPTIVE_BANNER,
       position: BannerAdPosition.BOTTOM_CENTER,
-      margin: 0,
-      npa: true
+      margin: 0
     });
 
   } catch (error) {
