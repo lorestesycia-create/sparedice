@@ -1,33 +1,36 @@
 import {
   AdMob,
+  AdmobConsentStatus,
   BannerAdSize,
-  BannerAdPosition,
-  BannerAdPluginEvents
+  BannerAdPosition
 } from '@capacitor-community/admob';
 
 async function iniciarAnuncios() {
-  const estado = document.getElementById('adBottom');
-
   try {
-    await AdMob.addListener(BannerAdPluginEvents.Loaded, () => {
-      if (estado) estado.textContent = 'BANNER CARGADO';
-    });
-
-    await AdMob.addListener(BannerAdPluginEvents.FailedToLoad, (error) => {
-      if (estado) estado.textContent = 'ERROR ADMOB: ' + JSON.stringify(error);
-    });
-
     await AdMob.initialize();
 
+    let consentInfo = await AdMob.requestConsentInfo();
+
+    if (
+      consentInfo.isConsentFormAvailable &&
+      consentInfo.status === AdmobConsentStatus.REQUIRED
+    ) {
+      consentInfo = await AdMob.showConsentForm();
+    }
+
+    if (!consentInfo.canRequestAds) {
+      console.log('AdMob: todavía no se pueden solicitar anuncios.');
+      return;
+    }
+
     await AdMob.showBanner({
-      adId: 'ca-app-pub-3940256099942544/6300978111',
+      adId: 'ca-app-pub-8854680295966508/9223012145',
       adSize: BannerAdSize.ADAPTIVE_BANNER,
       position: BannerAdPosition.BOTTOM_CENTER,
       margin: 0
     });
-
   } catch (error) {
-    if (estado) estado.textContent = 'ERROR ADMOB: ' + JSON.stringify(error);
+    console.error('Error de AdMob:', error);
   }
 }
 
