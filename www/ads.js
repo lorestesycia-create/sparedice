@@ -38,11 +38,6 @@ async function iniciarAnuncios() {
       consentInfo = await AdMob.showConsentForm();
     }
 
-    if (!consentInfo.canRequestAds) {
-      mostrarEstado('ADMOB BLOQUEADO POR CONSENTIMIENTO');
-      return;
-    }
-
     mostrarEstado('SOLICITANDO ANUNCIO...');
 
     await AdMob.showBanner({
